@@ -23,13 +23,13 @@ public class AutofacModule(TagCloudSettings settings) : Module
         
         builder.Register<IBoringWordsProvider>(_ =>
                 string.IsNullOrWhiteSpace(settings.BoringWordsPath)
-                    ? new EmptyBoringWordsProvider()
+                    ? new DefaultBoringWordsProvider()
                     : new FileBoringWordsProvider(settings.BoringWordsPath))
             .SingleInstance();
         
         builder.Register<ITextPreprocessor>(c =>
         {
-            var boringWords = c.Resolve<IBoringWordsProvider>().GetWords();
+            var boringWords = c.Resolve<IBoringWordsProvider>();
             return new CompositePreprocessor([
                 new LowerCaseNormalizer(),
                 new BoringWordsFilter(boringWords)

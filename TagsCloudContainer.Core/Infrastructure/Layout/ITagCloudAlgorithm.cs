@@ -1,9 +1,10 @@
+using ResultOf;
 using TagsCloudContainer.Core.Models;
 
 namespace TagsCloudContainer.Core.Infrastructure.Layout;
 public interface ITagCloudAlgorithm
 {
-    IEnumerable<LayoutWord> Arrange(
+    Result<IReadOnlyList<LayoutWord>> Arrange(
         IEnumerable<WordFrequency> wordFrequencies,
         LayoutOptions options);
 }

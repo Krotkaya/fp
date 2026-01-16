@@ -1,9 +1,10 @@
+using ResultOf;
 using SkiaSharp;
 using TagsCloudContainer.Core.Models;
 
 namespace TagsCloudContainer.Core.Infrastructure.Rendering;
 public interface ITagCloudRenderer
 {
-    SKImage Render(IEnumerable<LayoutWord> layoutWords, LayoutOptions options);
-    void SaveToFile(SKImage image, string filePath);
+    Result<SKImage> Render(IEnumerable<LayoutWord> layoutWords, LayoutOptions options);
+    Result<None> SaveToFile(SKImage image, string filePath);
 }

@@ -1,3 +1,4 @@
+using ResultOf;
 using SkiaSharp;
 
 namespace TagsCloudContainer.Core.Infrastructure.Layout;
@@ -5,30 +6,43 @@ internal class RectangleCloudLayouter(
     SKPoint center,
     ArchimedeanSpiralPointGenerator generator)
 {
-    private readonly List<SKRect> _rectangles = [];
-    public SKRect PutNextRectangle(SKSize size)
+    private readonly List<SKRect> rectangles = [];
+    public Result<SKRect> PutNextRectangle(SKSize size, SKRect bounds, int maxAttempts = 10000)
     {
         if (size.Width <= 0 || size.Height <= 0)
-            throw new ArgumentException("Rectangle size must be greater than zero");
+            return Result.Fail<SKRect>("Rectangle size must be greater than zero");
 
-        var rect = _rectangles.Count == 0
-            ? CreateRect(center, size)
-            : ShiftToCenter(FindPlace(size));
+        if (rectangles.Count != 0)
+            return FindPlace(size, bounds, maxAttempts).Then(rect =>
+            {
+                var shifted = ShiftToCenter(rect);
+                if (!IsInside(shifted, bounds))
+                    return Result.Fail<SKRect>("Tag cloud does not fit the image");
+                rectangles.Add(shifted);
+                return Result.Ok(shifted);
+            });
+        var first = CreateRect(center, size);
+        if (!IsInside(first, bounds))
+            return Result.Fail<SKRect>("Tag cloud does not fit the image");
+        rectangles.Add(first);
+        return Result.Ok(first);
 
-        _rectangles.Add(rect);
-        return rect;
     }
 
-    private SKRect FindPlace(SKSize size)
+    private Result<SKRect> FindPlace(SKSize size, SKRect bounds, int
+        maxAttempts)
     {
-        while (true)
+        for (var i = 0; i < maxAttempts; i++)
         {
             var point = generator.GetNextPoint();
             var candidate = CreateRect(point, size);
-            if (_rectangles.All(r => !r.IntersectsWith(candidate)))
-                return candidate;
+            if (rectangles.All(r => !r.IntersectsWith(candidate)) &&
+                IsInside(candidate, bounds))
+                return Result.Ok(candidate);
         }
+        return Result.Fail<SKRect>("Tag cloud does not fit the image");
     }
+
 
     private SKRect ShiftToCenter(SKRect rect)
     {
@@ -39,11 +53,19 @@ internal class RectangleCloudLayouter(
                 return rect;
 
             var shifted = rect.OffsetClone(direction.X, direction.Y);
-            if (_rectangles.Any(r => r.IntersectsWith(shifted)))
+            if (rectangles.Any(r => r.IntersectsWith(shifted)))
                 return rect;
 
             rect = shifted;
         }
+    }
+    
+    private static bool IsInside(SKRect rect, SKRect bounds)
+    {
+        return rect.Left >= bounds.Left &&
+               rect.Top >= bounds.Top &&
+               rect.Right <= bounds.Right &&
+               rect.Bottom <= bounds.Bottom;
     }
 
     private SKPoint GetDirectionToCenter(SKRect rect)

@@ -1,3 +1,4 @@
+using ResultOf;
 using SkiaSharp;
 using TagsCloudContainer.Core.Infrastructure.Coloring;
 using TagsCloudContainer.Core.Models;
@@ -8,31 +9,44 @@ public class TightSpiralTagCloudAlgorithm(
     IColorScheme colorScheme)
     : ITagCloudAlgorithm
 {
-    public IEnumerable<LayoutWord> Arrange(IEnumerable<WordFrequency>
+    public Result<IReadOnlyList<LayoutWord>> Arrange(IEnumerable<WordFrequency>
         wordFrequencies, LayoutOptions options)
     {
         var frequencies = wordFrequencies.ToArray();
         if (frequencies.Length == 0)
-            yield break;
+            return Result.Ok<IReadOnlyList<LayoutWord>>([]);
+
+        var typeface = SKFontManager.Default.MatchFamily(options.FontFamily);
+        if (typeface == null)
+            return Result.Fail<IReadOnlyList<LayoutWord>>($"Font'{options.FontFamily}' not found");
+
+        var bounds = new SKRect(0, 0, options.Width, options.Height);
+        var layouter = new RectangleCloudLayouter(options.Center,
+            new ArchimedeanSpiralPointGenerator(options.Center));
 
         var maxFrequency = frequencies.Max(x => x.Frequency);
-        var typeface = SKTypeface.FromFamilyName(options.FontFamily);
-        var layouter = new RectangleCloudLayouter(options.Center, 
-            new ArchimedeanSpiralPointGenerator(options.Center));
+        var layoutWords = new List<LayoutWord>();
 
         foreach (var wordFrequency in frequencies)
         {
-            var fontSize = fontSizeCalculator.Calculate(wordFrequency.Frequency,
+            var fontSize = fontSizeCalculator.Calculate(wordFrequency.Frequency, 
                 maxFrequency);
             var size = MeasureWordSize(wordFrequency.Word, typeface, fontSize);
-            var rect = layouter.PutNextRectangle(size);
-            var seed = wordFrequency.Word.GetHashCode();
-            var color = colorScheme.GetColor(seed);
+            var rectResult = layouter.PutNextRectangle(size, bounds);
+            if (!rectResult.IsSuccess)
+                return Result.Fail<IReadOnlyList<LayoutWord>>(rectResult.Error);
 
-            yield return new LayoutWord(wordFrequency, typeface, fontSize, color, rect);
+            var rect = rectResult.GetValueOrThrow();
+            var color =
+                colorScheme.GetColor(wordFrequency.Word.GetHashCode());
+
+            layoutWords.Add(new LayoutWord(wordFrequency, typeface, fontSize,
+                color, rect));
         }
-    }
 
+        return Result.Ok<IReadOnlyList<LayoutWord>>(layoutWords);
+    }
+    
     private static SKSize MeasureWordSize(
         string word, 
         SKTypeface typeface,

@@ -1,3 +1,4 @@
+using ResultOf;
 namespace TagsCloudContainer.Core.Infrastructure.Reading;
 public class TextFileReader : IFileTextReader
 {
@@ -6,13 +7,15 @@ public class TextFileReader : IFileTextReader
         return filePath.EndsWith(".txt", StringComparison.OrdinalIgnoreCase);
     }
 
-    public IReadOnlyList<string> ReadWords(string filePath)
+    public Result<IReadOnlyList<string>> ReadWords(string filePath)
     {
         if (!File.Exists(filePath))
-            throw new FileNotFoundException($"File not found: {filePath}");
+            return Result.Fail<IReadOnlyList<string>>($"File not found: {filePath}");
 
-        return File.ReadLines(filePath)
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .Select(line => line.Trim()).ToArray();
+
+        return Result.Of<IReadOnlyList<string>>(() => File.ReadLines(filePath)
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .Select(line => line.Trim()).ToArray(),
+            $"Failed to read file: {filePath}");
     }
 }

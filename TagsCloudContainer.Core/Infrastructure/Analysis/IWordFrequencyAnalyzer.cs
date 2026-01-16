@@ -1,8 +1,9 @@
+using ResultOf;
 using TagsCloudContainer.Core.Models;
 
 namespace TagsCloudContainer.Core.Infrastructure.Analysis;
 
 public interface IWordFrequencyAnalyzer
 {
-    IReadOnlyList<WordFrequency> Analyze(IEnumerable<string> words);
+    Result<IReadOnlyList<WordFrequency>> Analyze(IEnumerable<string> words);
 }
