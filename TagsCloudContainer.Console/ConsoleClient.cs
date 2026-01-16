@@ -1,3 +1,4 @@
+using ResultOf;
 using TagsCloudContainer.Core.Infrastructure.Analysis;
 using TagsCloudContainer.Core.Infrastructure.Layout;
 using TagsCloudContainer.Core.Infrastructure.Preprocessing;
@@ -13,29 +14,29 @@ public class ConsoleClient(
     ITagCloudAlgorithm algorithm,
     ITagCloudRenderer renderer)
 {
-    public void GenerateTagCloud(
+    public Result<None> GenerateTagCloud(
         string inputFile,
         string outputFile,
         LayoutOptions options)
     {
         System.Console.WriteLine($"Reading words from {inputFile}...");
-        var words = textReader.ReadWords(inputFile).ToArray();
 
-        System.Console.WriteLine("Processing words...");
-        var processedWords = preprocessor.Process(words).ToArray();
-
-        System.Console.WriteLine("Analyzing word frequencies...");
-        var frequencies = analyzer.Analyze(processedWords).ToArray();
-
-        System.Console.WriteLine("Arranging words in cloud...");
-        var layoutWords = algorithm.Arrange(frequencies, options).ToArray();
-
-        System.Console.WriteLine($"Rendering image ({options.Width}x{options.Height})...");
-        var image = renderer.Render(layoutWords, options);
-
-        renderer.SaveToFile(image, outputFile);
-
-        System.Console.WriteLine($"Tag cloud saved to {outputFile}");
-        System.Console.WriteLine($"Total words processed: {frequencies.Length}");
+        return textReader.ReadWords(inputFile)
+            .Then(words => preprocessor.Process(words))
+            .Then(words =>
+            {
+                if (words.Count == 0)
+                    return Result.Fail<IReadOnlyList<string>>("No words to build a tag cloud");
+                return Result.Ok(words);
+            })
+            .Then(words => analyzer.Analyze(words))
+            .Then(freqs => algorithm.Arrange(freqs, options))
+            .Then(layout =>
+            {
+                System.Console.WriteLine($"Rendering image ({options.Width} x{options.Height})...");
+        return renderer.Render(layout, options);
+            })
+            .Then(image => renderer.SaveToFile(image, outputFile))
+            .RefineError("Tag cloud generation failed");
     }
 }

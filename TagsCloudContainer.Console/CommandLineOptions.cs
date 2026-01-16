@@ -35,4 +35,8 @@ public class CommandLineOptions
     [Option("algorithm", Default = TagCloudAlgorithmType.Spiral, HelpText =
         "Algorithm: Spiral | Tight")]
     public TagCloudAlgorithmType Algorithm { get; init; } = TagCloudAlgorithmType.Spiral;
+    
+    [Option("settings", HelpText = "Path to JSON settings file")]
+    public string? SettingsFile { get; init; }
+
 }
