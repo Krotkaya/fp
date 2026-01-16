@@ -32,28 +32,32 @@ public class TextFileReaderTests
     {
         using var temp = new TempFile(new[] { "word1", "word2", "word3" });
 
-        var words = _reader.ReadWords(temp.Path).ToArray();
+        var words = _reader.ReadWords(temp.Path);
 
-        words.Should().Equal("word1", "word2", "word3");
+        words.IsSuccess.Should().BeTrue();
+        words.GetValueOrThrow().Should().Equal("word1", "word2", "word3");
     }
 
     [Test]
-    public void
-        ReadWords_ShouldThrowFileNotFoundException_ForNonExistingFile()
+    public void ReadWords_ShouldReturnFail_ForNonExistingFile()
     {
-        _reader.Invoking(r => r.ReadWords("non_existing_file.txt").ToArray())
-            .Should().Throw<FileNotFoundException>();
+        var result = _reader.ReadWords("non_existing_file.txt");
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("File not found");
+
     }
 
     [Test]
     public void ReadWords_ShouldSkipEmptyLines()
     {
-        using var temp = new TempFile(new[] { "word1", "", "word2", "   ",
-            "word3" });
+        using var temp = new TempFile(new[] { "word1", "", "word2", "   ", "word3" });
 
-        var words = _reader.ReadWords(temp.Path).ToArray();
+        var words = _reader.ReadWords(temp.Path);
 
-        words.Should().Equal("word1", "word2", "word3");
+        words.IsSuccess.Should().BeTrue();
+        words.GetValueOrThrow().Should().Equal("word1", "word2", "word3");
+
     }
 
     private sealed class TempFile : IDisposable

@@ -25,7 +25,9 @@ public class PngRendererTests
                 SKColors.Blue, new SKRect(80, 10, 150, 40))
         };
 
-        using var image = renderer.Render(layoutWords, options);
+        var renderResult = renderer.Render(layoutWords, options);
+        renderResult.IsSuccess.Should().BeTrue();
+        using var image = renderResult.GetValueOrThrow();
         var tempPath = Path.GetTempFileName();
 
         try

@@ -32,7 +32,10 @@ public class SpiralTagCloudAlgorithmTests
             new WordFrequency("three", 1)
         };
 
-        var layoutWords = algorithm.Arrange(frequencies, options).ToArray();
+        var result = algorithm.Arrange(frequencies, options);
+
+        result.IsSuccess.Should().BeTrue();
+        var layoutWords = result.GetValueOrThrow().ToArray();
 
         layoutWords.Should().HaveCount(frequencies.Length);
 
@@ -44,6 +47,7 @@ public class SpiralTagCloudAlgorithmTests
                     .Should().BeFalse($"rectangles {i} and {j} should not overlap");
             }
         }
+
     }
 
     [Test]
@@ -60,9 +64,33 @@ public class SpiralTagCloudAlgorithmTests
 
         var frequencies = new[] { new WordFrequency("center", 10) };
 
-        var layoutWords = algorithm.Arrange(frequencies, options).ToArray();
+        var result = algorithm.Arrange(frequencies, options);
+        result.IsSuccess.Should().BeTrue();
+        var layoutWords = result.GetValueOrThrow().ToArray();
 
         layoutWords.Should().ContainSingle();
         layoutWords[0].Rectangle.Contains(options.Center).Should().BeTrue();
     }
+    
+    [Test]
+    public void Arrange_ShouldFail_WhenWordTooLargeForImage()
+    {
+        var fontCalculator = Substitute.For<IFontSizeCalculator>();
+        fontCalculator
+            .Calculate(Arg.Any<int>(), Arg.Any<int>()).Returns(1000f);
+
+        var colorScheme = Substitute.For<IColorScheme>();
+        colorScheme.GetColor(Arg.Any<int>()).Returns(SKColors.Black);
+
+        var algorithm = new SpiralTagCloudAlgorithm(fontCalculator, colorScheme);
+        var options = new LayoutOptions();
+
+        var frequencies = new[] { new WordFrequency("qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq", 10) };
+
+        var result = algorithm.Arrange(frequencies, options);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Tag cloud doesn't fit");
+    }
+
 }
