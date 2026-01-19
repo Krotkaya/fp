@@ -33,17 +33,13 @@ public class TightSpiralTagCloudAlgorithm(
                 maxFrequency);
             var size = MeasureWordSize(wordFrequency.Word, typeface, fontSize);
             var rectResult = layouter.PutNextRectangle(size, bounds);
-            if (!rectResult.IsSuccess)
+            if (rectResult is { IsSuccess: false, Error: not null }) 
                 return Result.Fail<IReadOnlyList<LayoutWord>>(rectResult.Error);
 
             var rect = rectResult.GetValueOrThrow();
-            var color =
-                colorScheme.GetColor(wordFrequency.Word.GetHashCode());
-
-            layoutWords.Add(new LayoutWord(wordFrequency, typeface, fontSize,
-                color, rect));
+            var color = colorScheme.GetColor(wordFrequency.Word.GetHashCode());
+            layoutWords.Add(new LayoutWord(wordFrequency, typeface, fontSize, color, rect));
         }
-
         return Result.Ok<IReadOnlyList<LayoutWord>>(layoutWords);
     }
     

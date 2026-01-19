@@ -29,7 +29,7 @@ public class PngRendererTests
         renderResult.IsSuccess.Should().BeTrue();
         using var image = renderResult.GetValueOrThrow();
         var tempPath = Path.GetTempFileName();
-
+        
         try
         {
             renderer.SaveToFile(image, tempPath);

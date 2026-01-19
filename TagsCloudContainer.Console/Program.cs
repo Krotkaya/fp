@@ -6,14 +6,14 @@ using TagsCloudContainer.Core.DI;
 using TagsCloudContainer.Core.Models;
 using ResultOf;
 
-
 var parser = new Parser(with => with.HelpWriter = Console.Out);
 
 return parser.ParseArguments<CommandLineOptions>(args)
     .MapResult(
         options =>
         {
-            return LoadSettings(options)
+            return ValidateCommandLineOptions(options)
+                .Then(LoadSettings)
                 .Then<TagCloudSettings, None>(settings =>
                 {
                     var layoutOptions = new LayoutOptions
@@ -29,10 +29,9 @@ return parser.ParseArguments<CommandLineOptions>(args)
                             builder.RegisterModule(new AutofacModule(settings));
                             builder.RegisterInstance(options).As<CommandLineOptions>();
                             builder.RegisterType<ConsoleClient>().SingleInstance();
-
                             var container = builder.Build();
                             return container.Resolve<ConsoleClient>();
-                        }, "Failed to initialize DI container")
+                        }, "Failed to initialize DI container") 
                         .Then<ConsoleClient, None>(client =>
                             client.GenerateTagCloud(options.InputFile, options.OutputFile, layoutOptions));
                 })
@@ -41,30 +40,23 @@ return parser.ParseArguments<CommandLineOptions>(args)
         },
         errors =>
         {
-            foreach (var e in errors)
-                Console.Error.WriteLine(e.ToString());
+            foreach (var e in errors) Console.Error.WriteLine(e.ToString());
             return 1;
         });
 
-
-static Result<TagCloudSettings> ValidateOptions(CommandLineOptions o)
+static Result<CommandLineOptions> ValidateCommandLineOptions(CommandLineOptions o)
 {
-    if (o.Width <= 0 || o.Height <= 0)
-        return Result.Fail<TagCloudSettings>("Invalid image size. Width and height must be positive");
-
-    if (o.MinFontSize <= 0 || o.MaxFontSize <= 0)
-        return Result.Fail<TagCloudSettings>("Invalid font size. Min/Max must be positive");
-
-    if (o.MinFontSize > o.MaxFontSize)
-        return Result.Fail<TagCloudSettings>("Invalid font size range. MinFontSize > MaxFontSize");
-
     if (string.IsNullOrWhiteSpace(o.InputFile))
-        return Result.Fail<TagCloudSettings>("Input file is not specified");
+        return Result.Fail<CommandLineOptions>("Input file is not specified");
 
-    if (string.IsNullOrWhiteSpace(o.OutputFile))
-        return Result.Fail<TagCloudSettings>("Output file is not specified");
+    return string.IsNullOrWhiteSpace(o.OutputFile) 
+        ? Result.Fail<CommandLineOptions>("Output file is not specified") 
+        : Result.Ok(o);
+}
 
-    return Result.Ok(new TagCloudSettings
+static TagCloudSettings CreateSettingsFromOptions(CommandLineOptions o)
+{
+    return new TagCloudSettings
     {
         Width = o.Width,
         Height = o.Height,
@@ -74,62 +66,56 @@ static Result<TagCloudSettings> ValidateOptions(CommandLineOptions o)
         MaxFontSize = o.MaxFontSize,
         Algorithm = o.Algorithm,
         BoringWordsPath = o.BoringWordsFile
-    });
+    };
 }
- static Result<TagCloudSettings> LoadSettings(CommandLineOptions o)
-  {
-      if (string.IsNullOrWhiteSpace(o.SettingsFile))
-          return ValidateOptions(o); // old CLI path
 
-      if (!File.Exists(o.SettingsFile))
-          return Result.Fail<TagCloudSettings>($"Settings file not found: {o.SettingsFile}");
+static Result<TagCloudSettings> LoadSettings(CommandLineOptions o)
+{
+    var validator = new TagCloudSettingsValidator();
 
-      return Result.Of(() =>
-          {
-              var json = File.ReadAllText(o.SettingsFile);
-              var settings = JsonSerializer.Deserialize<TagCloudSettings>(
-                  json,
-                  new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-              if (settings == null)
-                  throw new InvalidOperationException("Settings file is empty or invalid.");
-              return settings;
-          }, $"Failed to read settings file: {o.SettingsFile}")
-          .Then(ValidateSettings)
-          .Then(settings => Result.Ok(OverrideBoringWords(settings, o.BoringWordsFile)));
-  }
+    if (string.IsNullOrWhiteSpace(o.SettingsFile))
+        return validator.Validate(CreateSettingsFromOptions(o)); 
 
-  static Result<TagCloudSettings> ValidateSettings(TagCloudSettings s)
-  {
-      if (s.Width <= 0 || s.Height <= 0)
-          return Result.Fail<TagCloudSettings>("Invalid image size. Width and height must be positive");
+    if (!File.Exists(o.SettingsFile))
+        return Result.Fail<TagCloudSettings>($"Settings file not found: {o.SettingsFile}");
 
-      if (s.MinFontSize <= 0 || s.MaxFontSize <= 0)
-          return Result.Fail<TagCloudSettings>("Invalid font size. Min/Max must be positive");
+    return Result.Of(() => File.ReadAllText(o.SettingsFile),
+            $"Failed to read settings file: {o.SettingsFile}")
+        .Then(DeserializeSettings)
+        .Then(settings => Result.Ok(OverrideBoringWords(settings, o.BoringWordsFile)))
+        .Then(validator.Validate);
 
-      if (s.MinFontSize > s.MaxFontSize)
-          return Result.Fail<TagCloudSettings>("Invalid font size range. MinFontSize > MaxFontSize");
+    static Result<TagCloudSettings> DeserializeSettings(string json)
+    {
+        try
+        {
+            var settings = JsonSerializer.Deserialize<TagCloudSettings>(
+                json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return settings == null 
+                ? Result.Fail<TagCloudSettings>("Settings file is empty or invalid.") 
+                : Result.Ok(settings);
+        }
+        catch (Exception e)
+        {
+            return Result.Fail<TagCloudSettings>($"Failed to parse settings file: {e.Message}");
+        }
+    }
+}
 
-      if (string.IsNullOrWhiteSpace(s.FontFamily))
-          return Result.Fail<TagCloudSettings>("Font family is not specified");
+static TagCloudSettings OverrideBoringWords(TagCloudSettings s, string? path)
+{
+    if (string.IsNullOrWhiteSpace(path))
+        return s;
 
-      return Result.Ok(s);
-  }
-
-  static TagCloudSettings OverrideBoringWords(TagCloudSettings s, string? path)
-  {
-      if (string.IsNullOrWhiteSpace(path))
-          return s;
-
-      return new TagCloudSettings
-      {
-          Width = s.Width,
-          Height = s.Height,
-          FontFamily = s.FontFamily,
-          ColorScheme = s.ColorScheme,
-          MinFontSize = s.MinFontSize,
-          MaxFontSize = s.MaxFontSize,
-          Algorithm = s.Algorithm,
-          BoringWordsPath = path
-      };
-  }
-
+    return new TagCloudSettings
+    {
+        Width = s.Width,
+        Height = s.Height,
+        FontFamily = s.FontFamily,
+        ColorScheme = s.ColorScheme,
+        MinFontSize = s.MinFontSize,
+        MaxFontSize = s.MaxFontSize,
+        Algorithm = s.Algorithm,
+        BoringWordsPath = path
+    };
+}

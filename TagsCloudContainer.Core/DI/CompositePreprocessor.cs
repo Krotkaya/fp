@@ -10,6 +10,4 @@ public class CompositePreprocessor(IEnumerable<ITextPreprocessor> preprocessors)
         return preprocessors.Aggregate(current, (current1, preprocessor) 
             => current1.Then(preprocessor.Process));
     }
-
-
 }

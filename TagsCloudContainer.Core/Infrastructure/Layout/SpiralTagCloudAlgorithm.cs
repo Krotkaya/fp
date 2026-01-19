@@ -16,7 +16,7 @@ public class SpiralTagCloudAlgorithm(
         var frequencies = wordFrequencies.ToArray();
         if (frequencies.Length == 0)
             return
-                Result.Ok<IReadOnlyList<LayoutWord>>(Array.Empty<LayoutWord>());
+                Result.Ok<IReadOnlyList<LayoutWord>>([]);
 
         var typeface = SKFontManager.Default.MatchFamily(options.FontFamily);
         if (typeface == null)
@@ -31,10 +31,8 @@ public class SpiralTagCloudAlgorithm(
         {
             var fontSize = fontSizeCalculator.Calculate(
                 wordFrequency.Frequency, maxFrequency);
-
             var size = MeasureWordSize(wordFrequency.Word, typeface, fontSize);
             var location = FindLocationForRectangle(size, options, bounds, placedRectangles);
-
             if (location == SKPoint.Empty)
                 return Result.Fail<IReadOnlyList<LayoutWord>>(
                     "Tag cloud doesn't fit the image");
@@ -42,11 +40,9 @@ public class SpiralTagCloudAlgorithm(
             var rectangle = new SKRect(location.X, location.Y, 
                 location.X + size.Width, location.Y + size.Height);
             placedRectangles.Add(rectangle);
-
             var color = colorScheme.GetColor(wordFrequency.Word.GetHashCode());
             layoutWords.Add(new LayoutWord(wordFrequency, typeface, fontSize, color, rectangle));
         }
-
         return Result.Ok<IReadOnlyList<LayoutWord>>(layoutWords);
     }
 
@@ -58,7 +54,6 @@ public class SpiralTagCloudAlgorithm(
         using var paint = new SKPaint();
         paint.Typeface = typeface;
         paint.TextSize = fontSize;
-
         var bounds = new SKRect();
         paint.MeasureText(word, ref bounds);
         return new SKSize(bounds.Width, bounds.Height);
@@ -74,19 +69,15 @@ public class SpiralTagCloudAlgorithm(
         const double radiusStep = 1;
         double angle = 0;
         double radius = 0;
-
         for (var i = 0; i < 1000; i++)
         {
             var x = options.Center.X + (float)(radius * Math.Cos(angle)) - size.Width / 2;
             var y = options.Center.Y + (float)(radius * Math.Sin(angle)) - size.Height / 2;
-
             var candidate = new SKRect(x, y, x + size.Width, y + size.Height);
-
             var fits = candidate.Left >= bounds.Left &&
                        candidate.Top >= bounds.Top &&
                        candidate.Right <= bounds.Right &&
                        candidate.Bottom <= bounds.Bottom;
-
             if (fits && !placedRectangles.Any(rect =>
                     rect.IntersectsWith(candidate)))
                 return new SKPoint(x, y);
@@ -94,7 +85,6 @@ public class SpiralTagCloudAlgorithm(
             angle += angleStep;
             radius += radiusStep;
         }
-
         return SKPoint.Empty;
     }
 }

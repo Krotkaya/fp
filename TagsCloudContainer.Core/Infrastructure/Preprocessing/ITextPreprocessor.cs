@@ -1,4 +1,5 @@
 using ResultOf;
+
 namespace TagsCloudContainer.Core.Infrastructure.Preprocessing;
 public interface ITextPreprocessor
 {

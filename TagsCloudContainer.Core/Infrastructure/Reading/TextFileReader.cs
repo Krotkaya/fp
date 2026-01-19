@@ -1,4 +1,5 @@
 using ResultOf;
+
 namespace TagsCloudContainer.Core.Infrastructure.Reading;
 public class TextFileReader : IFileTextReader
 {
@@ -11,8 +12,7 @@ public class TextFileReader : IFileTextReader
     {
         if (!File.Exists(filePath))
             return Result.Fail<IReadOnlyList<string>>($"File not found: {filePath}");
-
-
+        
         return Result.Of<IReadOnlyList<string>>(() => File.ReadLines(filePath)
                 .Where(line => !string.IsNullOrWhiteSpace(line))
                 .Select(line => line.Trim()).ToArray(),

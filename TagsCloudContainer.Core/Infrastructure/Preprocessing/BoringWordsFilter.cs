@@ -1,14 +1,8 @@
 using ResultOf;
+
 namespace TagsCloudContainer.Core.Infrastructure.Preprocessing;
-public class BoringWordsFilter : ITextPreprocessor
+public class BoringWordsFilter(IBoringWordsProvider provider) : ITextPreprocessor
 {
-    private readonly IBoringWordsProvider provider;
-
-    public BoringWordsFilter(IBoringWordsProvider provider)
-    {
-        this.provider = provider;
-    }
-
     public Result<IReadOnlyList<string>> Process(IEnumerable<string> words)
     {
         return provider.GetWords().Then(boringWords =>

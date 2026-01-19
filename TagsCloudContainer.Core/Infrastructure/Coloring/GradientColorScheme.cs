@@ -7,7 +7,6 @@ public class GradientColorScheme(SKColor startColor, SKColor endColor) : IColorS
     {
         var hash = Math.Abs(seed);
         var ratio = (hash % 100) / 100.0f;
-        
         return InterpolateColor(startColor, endColor, ratio);
     }
 
@@ -16,7 +15,6 @@ public class GradientColorScheme(SKColor startColor, SKColor endColor) : IColorS
         var r = (byte)(start.Red + (end.Red - start.Red) * ratio);
         var g = (byte)(start.Green + (end.Green - start.Green) * ratio);
         var b = (byte)(start.Blue + (end.Blue - start.Blue) * ratio);
-        
         return new SKColor(r, g, b);
     }
 }

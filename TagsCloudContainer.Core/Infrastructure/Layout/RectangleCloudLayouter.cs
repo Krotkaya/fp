@@ -26,7 +26,6 @@ internal class RectangleCloudLayouter(
             return Result.Fail<SKRect>("Tag cloud does not fit the image");
         rectangles.Add(first);
         return Result.Ok(first);
-
     }
 
     private Result<SKRect> FindPlace(SKSize size, SKRect bounds, int
@@ -43,7 +42,6 @@ internal class RectangleCloudLayouter(
         return Result.Fail<SKRect>("Tag cloud does not fit the image");
     }
 
-
     private SKRect ShiftToCenter(SKRect rect)
     {
         while (true)
@@ -51,11 +49,9 @@ internal class RectangleCloudLayouter(
             var direction = GetDirectionToCenter(rect);
             if (direction == SKPoint.Empty)
                 return rect;
-
-            var shifted = rect.OffsetClone(direction.X, direction.Y);
+            var shifted = OffsetClone(rect, direction.X, direction.Y);
             if (rectangles.Any(r => r.IntersectsWith(shifted)))
                 return rect;
-
             rect = shifted;
         }
     }
@@ -82,10 +78,7 @@ internal class RectangleCloudLayouter(
         var top = center.Y - size.Height / 2;
         return new SKRect(left, top, left + size.Width, top + size.Height);
     }
-}
 
-internal static class SkRectExtensions
-{
-    public static SKRect OffsetClone(this SKRect rect, float dx, float dy) =>
+    private static SKRect OffsetClone(SKRect rect, float dx, float dy) =>
         new(rect.Left + dx, rect.Top + dy, rect.Right + dx, rect.Bottom + dy);
 }

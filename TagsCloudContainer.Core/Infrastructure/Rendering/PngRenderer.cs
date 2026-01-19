@@ -8,32 +8,31 @@ public class PngRenderer : ITagCloudRenderer
     public  Result<SKImage> Render(IEnumerable<LayoutWord> layoutWords, LayoutOptions options)
     {
         return Result.Of(() =>
-        {
-            var info = new SKImageInfo(options.Width, options.Height);
-            using var surface = SKSurface.Create(info);
-            if (surface == null)
-                throw new InvalidOperationException("Failed to create Skia surface");
-
-            var canvas = surface.Canvas;
-            canvas.Clear(options.BackgroundColor);
-
-            foreach (var layoutWord in layoutWords)
             {
-                using var paint = new SKPaint();
-                paint.Color = layoutWord.Color;
-                paint.Typeface = layoutWord.Typeface;
-                paint.TextSize = layoutWord.FontSize;
-                paint.IsAntialias = true;
+                var info = new SKImageInfo(options.Width, options.Height);
+                using var surface = SKSurface.Create(info);
+                if (surface == null)
+                    throw new InvalidOperationException("Failed to create Skia surface");
+                var canvas = surface.Canvas;
+                canvas.Clear(options.BackgroundColor);
 
-                canvas.DrawText(
-                    layoutWord.WordFrequency.Word,
-                    layoutWord.Rectangle.Left,
-                    layoutWord.Rectangle.Bottom,
-                    paint);
-            }
+                foreach (var layoutWord in layoutWords)
+                {
+                    using var paint = new SKPaint();
+                    paint.Color = layoutWord.Color;
+                    paint.Typeface = layoutWord.Typeface;
+                    paint.TextSize = layoutWord.FontSize;
+                    paint.IsAntialias = true;
 
-            return surface.Snapshot();
-        }, "Failed to render image");
+                    canvas.DrawText(
+                        layoutWord.WordFrequency.Word,
+                        layoutWord.Rectangle.Left,
+                        layoutWord.Rectangle.Bottom,
+                        paint);
+                }
+                return surface.Snapshot();
+            })
+            .RefineError("Failed to render image");
     }
 
     public Result<None> SaveToFile(SKImage image, string filePath)
@@ -48,6 +47,7 @@ public class PngRenderer : ITagCloudRenderer
                     throw new InvalidOperationException("Failed to encode image");
                 using var stream = File.OpenWrite(filePath);
                 data.SaveTo(stream);
-            }, $"Failed to save file {filePath}");
+            })
+            .RefineError($"Failed to save file {filePath}");
     }
 }

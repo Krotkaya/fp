@@ -8,7 +8,7 @@ namespace ResultOf;
 
     public struct Result<T>
     {
-        public Result(string error, T value = default(T))
+        public Result(string? error, T? value = default)
         {
             Error = error;
             Value = value;
@@ -18,8 +18,8 @@ namespace ResultOf;
             return Result.Ok(v);
         }
 
-        public string Error { get; }
-        internal T Value { get; }
+        public string? Error { get; }
+        internal T? Value { get; }
         public T GetValueOrThrow()
         {
             if (IsSuccess) return Value;
@@ -30,12 +30,7 @@ namespace ResultOf;
 
     public static class Result
     {
-        public static Result<T> AsResult<T>(this T value)
-        {
-            return Ok(value);
-        }
-
-        public static Result<T> Ok<T>(T value)
+        public static Result<T> Ok<T>(T? value)
         {
             return new Result<T>(null, value);
         }
@@ -50,7 +45,7 @@ namespace ResultOf;
             return new Result<T>(e);
         }
 
-        public static Result<T> Of<T>(Func<T> f, string error = null)
+        public static Result<T> Of<T>(Func<T> f, string? error = null)
         {
             try
             {
@@ -62,7 +57,7 @@ namespace ResultOf;
             }
         }
 
-        public static Result<None> OfAction(Action f, string error = null)
+        public static Result<None> OfAction(Action f, string? error = null)
         {
             try
             {

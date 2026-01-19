@@ -38,5 +38,4 @@ public class CommandLineOptions
     
     [Option("settings", HelpText = "Path to JSON settings file")]
     public string? SettingsFile { get; init; }
-
 }

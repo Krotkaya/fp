@@ -22,21 +22,23 @@ public class ConsoleClient(
         System.Console.WriteLine($"Reading words from {inputFile}...");
 
         return textReader.ReadWords(inputFile)
-            .Then(words => preprocessor.Process(words))
-            .Then(words =>
-            {
-                if (words.Count == 0)
-                    return Result.Fail<IReadOnlyList<string>>("No words to build a tag cloud");
-                return Result.Ok(words);
-            })
-            .Then(words => analyzer.Analyze(words))
-            .Then(freqs => algorithm.Arrange(freqs, options))
+            .Then(preprocessor.Process)
+            .Then(EnsureNotEmpty)
+            .Then(analyzer.Analyze)
+            .Then(freqs => 
+                algorithm.Arrange(freqs, options))
             .Then(layout =>
             {
-                System.Console.WriteLine($"Rendering image ({options.Width} x{options.Height})...");
-        return renderer.Render(layout, options);
+                System.Console.WriteLine($"Rendering image ({options.Width} x{options.Height})..."); 
+                return renderer.Render(layout, options);
             })
             .Then(image => renderer.SaveToFile(image, outputFile))
             .RefineError("Tag cloud generation failed");
+    }
+    private static Result<IReadOnlyList<string>> EnsureNotEmpty(IReadOnlyList<string> words)
+    {
+        return words.Count == 0 
+            ? Result.Fail<IReadOnlyList<string>>("No words to build a tag cloud") 
+            : Result.Ok(words);
     }
 }

@@ -6,10 +6,8 @@ public class LinearFontSizeCalculator(float minFontSize = 10, float maxFontSize 
     {
         if (maxFrequency <= 0)
             return minFontSize;
-
         var ratio = (float)frequency / maxFrequency;
         var fontSize = minFontSize + (maxFontSize - minFontSize) * ratio;
-        
         return Math.Max(minFontSize, Math.Min(maxFontSize, fontSize));
     }
 }

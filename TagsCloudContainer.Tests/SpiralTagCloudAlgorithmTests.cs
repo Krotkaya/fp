@@ -8,7 +8,6 @@ using TagsCloudContainer.Core.Infrastructure.Layout;
 using TagsCloudContainer.Core.Models;
 
 namespace TagsCloudContainer.Tests;
-
 [TestFixture]
 public class SpiralTagCloudAlgorithmTests
 {
