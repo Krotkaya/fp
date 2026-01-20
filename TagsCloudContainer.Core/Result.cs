@@ -72,20 +72,6 @@ namespace ResultOf;
 
         public static Result<TOutput> Then<TInput, TOutput>(
             this Result<TInput> input,
-            Func<TInput, TOutput> continuation)
-        {
-            return input.Then(inp => Of(() => continuation(inp)));
-        }
-
-        public static Result<None> Then<TInput>(
-            this Result<TInput> input,
-            Action<TInput> continuation)
-        {
-            return input.Then(inp => OfAction(() => continuation(inp)));
-        }
-
-        public static Result<TOutput> Then<TInput, TOutput>(
-            this Result<TInput> input,
             Func<TInput, Result<TOutput>> continuation)
         {
             return input.IsSuccess

@@ -54,9 +54,9 @@ static Result<CommandLineOptions> ValidateCommandLineOptions(CommandLineOptions 
         : Result.Ok(o);
 }
 
-static TagCloudSettings CreateSettingsFromOptions(CommandLineOptions o)
+static TagCloudSettingsDto CreateSettingsFromOptions(CommandLineOptions o)
 {
-    return new TagCloudSettings
+    return new TagCloudSettingsDto
     {
         Width = o.Width,
         Height = o.Height,
@@ -71,10 +71,8 @@ static TagCloudSettings CreateSettingsFromOptions(CommandLineOptions o)
 
 static Result<TagCloudSettings> LoadSettings(CommandLineOptions o)
 {
-    var validator = new TagCloudSettingsValidator();
-
     if (string.IsNullOrWhiteSpace(o.SettingsFile))
-        return validator.Validate(CreateSettingsFromOptions(o)); 
+        return TagCloudSettings.Create(CreateSettingsFromOptions(o)); 
 
     if (!File.Exists(o.SettingsFile))
         return Result.Fail<TagCloudSettings>($"Settings file not found: {o.SettingsFile}");
@@ -82,32 +80,31 @@ static Result<TagCloudSettings> LoadSettings(CommandLineOptions o)
     return Result.Of(() => File.ReadAllText(o.SettingsFile),
             $"Failed to read settings file: {o.SettingsFile}")
         .Then(DeserializeSettings)
-        .Then(settings => Result.Ok(OverrideBoringWords(settings, o.BoringWordsFile)))
-        .Then(validator.Validate);
+        .Then(settings => TagCloudSettings.Create(OverrideBoringWords(settings, o.BoringWordsFile)));
 
-    static Result<TagCloudSettings> DeserializeSettings(string json)
+    static Result<TagCloudSettingsDto> DeserializeSettings(string json)
     {
         try
         {
-            var settings = JsonSerializer.Deserialize<TagCloudSettings>(
+            var settings = JsonSerializer.Deserialize<TagCloudSettingsDto>(
                 json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return settings == null 
-                ? Result.Fail<TagCloudSettings>("Settings file is empty or invalid.") 
+                ? Result.Fail<TagCloudSettingsDto>("Settings file is empty or invalid.") 
                 : Result.Ok(settings);
         }
         catch (Exception e)
         {
-            return Result.Fail<TagCloudSettings>($"Failed to parse settings file: {e.Message}");
+            return Result.Fail<TagCloudSettingsDto>($"Failed to parse settings file: {e.Message}");
         }
     }
 }
 
-static TagCloudSettings OverrideBoringWords(TagCloudSettings s, string? path)
+static TagCloudSettingsDto OverrideBoringWords(TagCloudSettingsDto s, string? path)
 {
     if (string.IsNullOrWhiteSpace(path))
         return s;
 
-    return new TagCloudSettings
+    return new TagCloudSettingsDto
     {
         Width = s.Width,
         Height = s.Height,
